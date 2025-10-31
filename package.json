@@ -1,18 +1,36 @@
 {
   "name": "patreon-ts",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "TypeScript client for Patreon API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidisaaclee/patreon-ts"
+  },
   "dependencies": {
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   }
 }
