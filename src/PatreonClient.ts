@@ -252,7 +252,7 @@ export class PatreonClient {
   async login(opts: {
     email: string;
     password: string;
-  }): Promise<{ cookie: string; response: Response } | null> {
+  }): Promise<{ cookie: string; response: Response }> {
     const url = new URL("https://www.patreon.com/api/auth");
     url.searchParams.set("include", "user.null");
     url.searchParams.set("fields[user]", "[]");
@@ -284,13 +284,15 @@ export class PatreonClient {
       },
     });
     if (!response.ok) {
-      return null;
+      throw new Error(
+        `Login failed: ${response.status} ${response.statusText}`,
+      );
     }
     // TODO: This includes stuff like expirations
     // Use https://www.npmjs.com/package/set-cookie-parser to parse
     const cookie = response.headers.get("set-cookie");
     if (cookie == null) {
-      return null;
+      throw new Error("Could not get cookie from response");
     }
     return { cookie, response };
   }
