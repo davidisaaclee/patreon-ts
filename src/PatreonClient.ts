@@ -1,4 +1,9 @@
-import { PostsResponseSchema, PostsResponse } from "./types";
+import {
+  PostsResponseSchema,
+  PostsResponse,
+  CurrentUserResponse,
+  CurrentUserResponseSchema,
+} from "./types";
 
 type QueryParamsWithCursor<Params> =
   | (Params & { cursor?: string })
@@ -15,6 +20,13 @@ export class PatreonClient {
     Referer: "https://www.patreon.com/",
     "Content-Type": "application/vnd.api+json",
   };
+
+  get #headers() {
+    return {
+      ...this.#PATREON_HEADERS,
+      ...this.extraHeaders,
+    };
+  }
 
   #buildUrl(endpoint: string, cursor?: string): URL {
     const url = new URL(`https://www.patreon.com/api/${endpoint}`);
@@ -158,10 +170,7 @@ export class PatreonClient {
     url.searchParams.set("sort", sort);
 
     const res = await fetch(url.toString(), {
-      headers: {
-        ...this.#PATREON_HEADERS,
-        ...this.extraHeaders,
-      },
+      headers: this.#headers,
     });
     if (!res.ok) {
       throw new Error(`Error fetching posts: ${res.status} ${res.statusText}`);
@@ -210,10 +219,7 @@ export class PatreonClient {
         pagedUrl.searchParams.set("page[cursor]", cursor);
       }
       const res = await fetch(pagedUrl.toString(), {
-        headers: {
-          ...this.#PATREON_HEADERS,
-          ...this.extraHeaders,
-        },
+        headers: this.#headers,
       });
       if (!res.ok) {
         throw new Error(
@@ -226,6 +232,66 @@ export class PatreonClient {
     };
 
     yield* this.#postResponsesIterator(fetcher, params.initialCursor);
+  }
+
+  async currentUser(): Promise<CurrentUserResponse | null> {
+    const res = await fetch("https://www.patreon.com/api/current_user", {
+      headers: this.#headers,
+    });
+
+    // Return null if not logged in
+    if (res.status === 401) {
+      return null;
+    }
+
+    const json = await res.json();
+    return CurrentUserResponseSchema.parse(json);
+  }
+
+  async login(opts: {
+    email: string;
+    password: string;
+  }): Promise<{ cookie: string; response: Response } | null> {
+    const url = new URL("https://www.patreon.com/api/auth");
+    url.searchParams.set("include", "user.null");
+    url.searchParams.set("fields[user]", "[]");
+    url.searchParams.set("json-api-version", "1.0");
+    url.searchParams.set("json-api-use-default-includes", "false");
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      body: JSON.stringify({
+        data: {
+          type: "genericPatreonApi",
+          attributes: {
+            patreon_auth: {
+              email: opts.email,
+              password: opts.password,
+              allow_account_creation: false,
+            },
+            auth_context: "auth",
+            ru: "https://www.patreon.com/home",
+          },
+          relationships: {},
+        },
+      }),
+      headers: {
+        Accept: "*/*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        Referer: "https://www.patreon.com/login",
+        "Content-Type": "application/vnd.api+json",
+      },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    // TODO: This includes stuff like expirations
+    // Use https://www.npmjs.com/package/set-cookie-parser to parse
+    const cookie = response.headers.get("set-cookie");
+    if (cookie == null) {
+      return null;
+    }
+    return { cookie, response };
   }
 }
 

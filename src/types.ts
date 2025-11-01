@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z, ZodSchema } from "zod";
 
 // Image URL schemas
 const ImageUrlSchema = z.object({
@@ -307,6 +307,31 @@ const PostsResponseSchema = z.object({
   meta: MetaSchema.optional(),
 });
 
+function jsonApiSchema(opts: {
+  data?: ZodSchema;
+  included?: ZodSchema;
+  links?: ZodSchema;
+  meta?: ZodSchema;
+}) {
+  return z.object({
+    data: opts.data,
+    included: opts.included,
+    links: opts.links,
+    meta: opts.meta,
+  });
+}
+
+const CurrentUserResponseSchema = jsonApiSchema({
+  data: z.object({
+    id: z.string(),
+    type: z.literal("user"),
+    attributes: UserAttributesSchema,
+  }),
+  links: z.object({
+    self: z.string().nullable().optional(),
+  }),
+});
+
 // Export types
 export type Post = z.infer<typeof PostSchema>;
 export type PostAttributes = z.infer<typeof PostAttributesSchema>;
@@ -318,6 +343,7 @@ export type AccessRule = z.infer<typeof AccessRuleSchema>;
 export type Reward = z.infer<typeof RewardSchema>;
 export type IncludedItem = z.infer<typeof IncludedItemSchema>;
 export type PostsResponse = z.infer<typeof PostsResponseSchema>;
+export type CurrentUserResponse = z.infer<typeof CurrentUserResponseSchema>;
 
 // Export schemas
 export {
@@ -329,4 +355,5 @@ export {
   AccessRuleSchema,
   RewardSchema,
   PostsResponseSchema,
+  CurrentUserResponseSchema,
 };
