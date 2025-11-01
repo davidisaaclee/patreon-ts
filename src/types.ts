@@ -307,26 +307,20 @@ const PostsResponseSchema = z.object({
   meta: MetaSchema.optional(),
 });
 
-function jsonApiSchema(opts: {
-  data?: ZodSchema;
-  included?: ZodSchema;
-  links?: ZodSchema;
-  meta?: ZodSchema;
-}) {
-  return z.object({
-    data: opts.data,
-    included: opts.included,
-    links: opts.links,
-    meta: opts.meta,
-  });
-}
-
-const CurrentUserResponseSchema = jsonApiSchema({
+const CurrentUserResponseSchema = z.object({
   data: z.object({
     id: z.string(),
     type: z.literal("user"),
     attributes: UserAttributesSchema,
   }),
+  links: z.object({
+    self: z.string().nullable().optional(),
+  }),
+});
+
+const SinglePostResponseSchema = z.object({
+  data: PostSchema,
+  included: z.array(IncludedItemSchema).optional(),
   links: z.object({
     self: z.string().nullable().optional(),
   }),
@@ -344,6 +338,7 @@ export type Reward = z.infer<typeof RewardSchema>;
 export type IncludedItem = z.infer<typeof IncludedItemSchema>;
 export type PostsResponse = z.infer<typeof PostsResponseSchema>;
 export type CurrentUserResponse = z.infer<typeof CurrentUserResponseSchema>;
+export type SinglePostResponse = z.infer<typeof SinglePostResponseSchema>;
 
 // Export schemas
 export {
@@ -356,4 +351,5 @@ export {
   RewardSchema,
   PostsResponseSchema,
   CurrentUserResponseSchema,
+  SinglePostResponseSchema,
 };

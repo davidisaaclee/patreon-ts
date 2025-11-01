@@ -3,6 +3,7 @@ import {
   PostsResponse,
   CurrentUserResponse,
   CurrentUserResponseSchema,
+  SinglePostResponseSchema,
 } from "./types";
 
 type QueryParamsWithCursor<Params> =
@@ -292,6 +293,18 @@ export class PatreonClient {
       return null;
     }
     return { cookie, response };
+  }
+
+  async post(postId: string) {
+    const url = this.#buildUrl(`posts/${postId}`);
+    const res = await fetch(url.toString(), {
+      headers: this.#headers,
+    });
+    if (!res.ok) {
+      throw new Error(`Error fetching post: ${res.status} ${res.statusText}`);
+    }
+    const json = await res.json();
+    return SinglePostResponseSchema.parse(json);
   }
 }
 
