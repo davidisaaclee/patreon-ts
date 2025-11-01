@@ -176,19 +176,56 @@ export class PatreonClient {
     collectionId?: string;
     initialCursor?: string;
   }) {
-    let cursor = params.initialCursor;
-    while (true) {
-      const page = await this.posts({
+    const fetcher = (cursor?: string) =>
+      this.posts({
         campaignId: params.campaignId,
         collectionId: params.collectionId,
         cursor,
       });
-      yield page.data;
+    yield* this.#postResponsesIterator(fetcher, params.initialCursor);
+  }
+
+  async *#postResponsesIterator(
+    fetcher: (cursor?: string) => Promise<PostsResponse>,
+    initialCursor?: string,
+  ) {
+    let cursor = initialCursor;
+    while (true) {
+      const page = await fetcher(cursor);
+      yield { page, nextCursor: page.meta?.pagination?.cursors?.next };
       cursor = page.meta?.pagination?.cursors?.next ?? undefined;
       if (cursor == null) {
         return;
       }
     }
+  }
+
+  async *following(params: { initialCursor?: string } = {}) {
+    const url = this.#buildUrl("stream");
+    url.searchParams.set("filter[is_following]", "true");
+
+    const fetcher = async (cursor?: string) => {
+      const pagedUrl = new URL(url.toString());
+      if (cursor) {
+        pagedUrl.searchParams.set("page[cursor]", cursor);
+      }
+      const res = await fetch(pagedUrl.toString(), {
+        headers: {
+          ...this.#PATREON_HEADERS,
+          ...this.extraHeaders,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(
+          `Error fetching posts: ${res.status} ${res.statusText}`,
+        );
+      }
+      const json = await res.json();
+      const parsed = await PostsResponseSchema.parse(json);
+      return parsed;
+    };
+
+    yield* this.#postResponsesIterator(fetcher, params.initialCursor);
   }
 }
 
